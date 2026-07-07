@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# tool state (not part of the analysis)
+.omc/
+.omx/
+
+# course materials: too large for GitHub (143 MB PDF) and not my own work
+Lecture/
