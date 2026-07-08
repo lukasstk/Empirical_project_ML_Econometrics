@@ -13,11 +13,12 @@
 #                  + CP*(Z - mean(Z))'gamma_cp + LEZ*(Z - mean(Z))'gamma_lez
 #                  + g(W) + e
 #
-#     Estimated with cross-fitted DML. The nuisance functions use the
-#     plugin-lasso (hdm::rlasso, theory-based lambda) as in the lecture's
-#     rlassoEffects() heterogeneity example - no inner cross-validation,
-#     which cuts the number of lasso fits by ~11x. The outer K-fold
-#     cross-fitting (city-level folds) is kept.
+#     Estimated with cross-fitted DML (DoubleML package, see dml_plr in
+#     00_setup.R): CV-lasso nuisances, city-level folds, cluster-robust
+#     SEs. Each of the 3 + 2x9 treatment columns is estimated in turn with
+#     the remaining treatment columns moved into the controls, so n_rep = 1
+#     here to keep the runtime manageable (split noise is quantified for
+#     the main effects in 02 via n_rep = 5).
 # =============================================================================
 
 source("00_setup.R")
@@ -42,8 +43,8 @@ D_het <- cbind(cp_active  = data$cp_active,
                cp_x_lez   = data$cp_x_lez,
                D_cp_int, D_lez_int)
 
-het <- dml_plm(Y, D_het, W, cluster = data$city_id,
-               learner = "rlasso", K = 5, seed = 42)
+het <- dml_plr(Y, D_het, W, cluster = data$city_id,
+               learner = "lasso", n_folds = 5, n_rep = 1, seed = 42)
 save_table(het$results, "tab_heterogeneity_dml")
 
 # Coefficient plots, separately for CP and LEZ interactions

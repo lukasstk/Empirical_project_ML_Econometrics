@@ -3,9 +3,10 @@
 # Master script: runs the full analysis pipeline in order.
 # Outputs land in output/tables (csv) and output/figures (png).
 #
-# The baseline nuisance learner is the plugin-lasso (hdm::rlasso, no inner
-# cross-validation), so most of the remaining runtime comes from the
-# CV-lasso / ridge / random-forest comparison rows in the sensitivity script.
+# The whole pipeline runs on the DoubleML package (see 00_setup.R). The
+# baseline nuisance learner is the CV-lasso, so every nuisance fit runs an
+# inner 10-fold cross-validation; expect a total runtime in the tens of
+# minutes (02 uses n_rep = 5 repetitions, 03 has 21 treatment columns).
 # =============================================================================
 
 t0 <- Sys.time()
