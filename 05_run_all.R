@@ -1,12 +1,20 @@
 # =============================================================================
 # 05_run_all.R
 # Master script: runs the full analysis pipeline in order.
-# Outputs land in output/tables (csv) and output/figures (png).
+# Outputs land in a date-stamped folder, <out_dir>/tables (csv) and
+# <out_dir>/figures (png), e.g. output_2026-07-08/ - so a rerun never
+# overwrites earlier results (the original run lives in output/). Set
+# out_dir before running to choose the folder name yourself (00_setup.R).
 #
-# The whole pipeline runs on the DoubleML package (see 00_setup.R). The
-# baseline nuisance learner is the CV-lasso, so every nuisance fit runs an
-# inner 10-fold cross-validation; expect a total runtime in the tens of
-# minutes (02 uses n_rep = 5 repetitions, 03 has 21 treatment columns).
+# The whole pipeline runs on the DoubleML package (see 00_setup.R): "One-By-
+# One Double LASSO", each treatment coefficient estimated in turn with the
+# other treatments folded into that run's nuisance set (DoubleML's default
+# use_other_treat_as_covariate = TRUE). The baseline nuisance learner is the
+# plugin-penalty lasso (hdm::rlasso, no inner CV -> one fit per nuisance);
+# ridge and a random forest appear as learner-choice sensitivity rows in 04.
+# Cross-fitting folds run on 5 parallel workers (future::plan in
+# 00_setup.R). Expect a few minutes for 02/03 and most of the total time in
+# 04 (random forest row).
 # =============================================================================
 
 t0 <- Sys.time()
@@ -24,4 +32,5 @@ run("02_main_effects_dml.R")
 run("03_heterogeneity_dml.R")
 run("04_sensitivity_analysis.R")
 
-cat("\nAll scripts finished. See output/tables and output/figures.\n")
+cat("\nAll scripts finished. See", file.path(out_dir, "tables"), "and",
+    file.path(out_dir, "figures"), "\n")

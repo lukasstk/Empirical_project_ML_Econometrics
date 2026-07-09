@@ -1,0 +1,112 @@
+================================================================================
+INTERPRETATION OF RESULTS
+DML analysis of urban emission policies (congestion pricing CP, low-emission
+zone LEZ) on log transport CO2. Baseline: DoubleML PLR, plugin lasso
+(hdm::rlasso) nuisances, city-level folds, cluster-robust SEs, n_rep = 5.
+================================================================================
+
+1. MAIN EFFECTS (tab_main_effects_dml.csv, tab_policy_regimes.csv)
+--------------------------------------------------------------------------------
+                    log points     percent           p-value
+  CP alone            -0.180       ~ -16%  [-31%, +1%]   0.057
+  LEZ alone           +0.289       ~ +34%  [+16%, +54%]  <0.001
+  CP x LEZ (synergy)  -0.944                             <1e-6
+  Both vs. none       -0.776       ~ -54%  [-66%, -38%]  <1e-6
+
+- CP alone: a reduction of roughly 16% in transport CO2, borderline
+  significant at the 5% level. The magnitude is in the range documented for
+  real-world congestion charges (roughly -10% to -20% traffic in the zone),
+  so it is plausible on its face.
+- LEZ alone: a 34% INCREASE. Substantively, a small positive effect would be
+  defensible (LEZs target PM/NOx, not CO2; drivers may detour around the
+  zone), but +34% is far too large to be a causal effect of a low-emission
+  zone. See the placebo test below: this coefficient is most plausibly
+  selection bias, not a policy effect.
+- Interaction: strongly negative and highly significant. The joint effect is
+  much larger than the sum of the individual effects (super-additive
+  synergy). Answer to question 3: joint implementation is MORE effective
+  than the sum of its parts.
+- Both vs. none (regime parametrization): -54%, estimated directly as a
+  single coefficient with its own CI.
+
+Consistency check across the two parametrizations:
+  theta_cp + theta_lez + theta_int = -0.18 + 0.29 - 0.94 = -0.83
+  vs. directly estimated "both" coefficient          = -0.78
+  These agree within sampling noise; the two runs are mutually consistent.
+
+2. PLACEBO TEST (tab_placebo_announcement.csv) -- THE KEY RESULT
+--------------------------------------------------------------------------------
+  cp_pre  = +0.33  (p = 0.001)
+  lez_pre = +0.39  (p < 0.0001)
+
+In city-years where a policy was ANNOUNCED (major topic of public
+discussion) but NOT YET ACTIVE, emissions are 33-39 log points HIGHER than
+the controls predict. Since no charge is collected and no vehicle is banned
+in these years, the policy cannot mechanically cause this. The reading is:
+cities adopt these policies because their emissions are high or rising --
+selection on the outcome that the control set W does not absorb.
+Conditional ignorability (the identifying assumption) therefore fails.
+
+Direction of the bias: UPWARD for both policies.
+- The LEZ pre-gap (+0.39) is about the same size as the estimated LEZ
+  "effect" (+0.29). The positive LEZ coefficient is therefore plausibly
+  entirely selection; the true LEZ effect is around zero or mildly negative.
+- The CP estimate (-0.18) is likewise biased upward; the true CP effect is
+  likely MORE negative (back-of-envelope: -0.18 minus a pre-gap of ~0.33
+  puts it near -0.5 log points).
+
+This is the headline finding for the report: the estimator checks all pass
+(section 3), but the identification check does not, and it signs the bias.
+
+3. SENSITIVITY (tab_sensitivity_specs.csv)
+--------------------------------------------------------------------------------
+- Learner choice (plugin lasso, CV lasso 1se/min, ridge, random forest):
+  signs never flip, magnitudes stay in a band (CP: -0.15 to -0.35, LEZ:
+  +0.17 to +0.46, interaction: -0.80 to -1.16). The random forest pulls CP
+  down and LEZ up moderately -- worth a sentence, not a concern.
+- Control sets: adding the mediators (pm25, fleet shares) cuts the LEZ
+  coefficient roughly in half (+0.29 -> +0.14). This is exactly the
+  bad-control / mediator-absorption logic that motivated excluding them
+  from the baseline: part of the effect operates through the fleet, and
+  conditioning on the channel removes it. It confirms the baseline choice.
+- Folds (2 vs. 5 vs. 10): estimates stable, as DML theory predicts.
+
+4. HETEROGENEITY (tab_heterogeneity_dml.csv)
+--------------------------------------------------------------------------------
+CP: significant negative interactions with GDP per capita (-0.62, p=0.03),
+population density (-0.21, p=0.04), public transit quality (-0.028 per
+index point, p=0.01) and fuel price (-3.12 per EUR/l, p=0.001; the fuel
+price range is only 1.34-1.74 EUR, so this is ~-0.23 per SD).
+Economically sensible: pricing works better where alternatives exist
+(transit, density) and where it stacks on an existing price signal
+(fuel price). Answer to question 2: dense, richer cities with good public
+transport benefit the most from CP.
+
+LEZ: no significant heterogeneity in any characteristic.
+
+Consistency with the main run: in the heterogeneity run the CP main effect
+is ~0 (effect AT THE AVERAGE CITY, because the characteristics are
+mean-centered), while run 02 gives -0.18 (a treated-weighted average).
+These agree precisely because CP adopters are above average on the
+characteristics with negative interactions -- a coherence check that
+passes, not a discrepancy.
+
+5. SUPPORT AND SAMPLE (tab_treatment_counts.csv)
+--------------------------------------------------------------------------------
+183 cities; 68 ever CP, 70 ever LEZ, 28 ever both; 281 city-years with both
+policies active. Enough overlap to identify the interaction, but note that
+the synergy estimate leans on only 28 cities.
+
+6. BOTTOM LINE
+--------------------------------------------------------------------------------
+- Internally the pipeline is consistent and robust: parametrizations agree,
+  learners agree, folds agree, mediators behave as theory predicts, and the
+  heterogeneity run coheres with the main run.
+- Causally, the placebo test shows selection into treatment on high
+  emission levels. Taken at face value the point estimates OVERSTATE the
+  LEZ effect (its positive sign is likely pure selection) and UNDERSTATE
+  the CP reduction. The report should present the main table together with
+  the placebo table and interpret the estimates as biased bounds, not as
+  clean causal effects. See discussion.txt for the full limitations
+  discussion.
+================================================================================

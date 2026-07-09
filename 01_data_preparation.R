@@ -35,16 +35,15 @@ data$latitude_zone <- factor(data$latitude_zone)
 data$country_id    <- factor(data$country_id)
 
 # ---- (4) Control sets -------------------------------------------------------
-# BASELINE controls: potential confounders that can drive both policy
+# Baseline controls: potential confounders that can drive both policy
 # adoption and emissions (size, economy, politics, prices, weather,
 # geography, industry structure).
 #
-# Deliberately ALSO included: variables that should be irrelevant
-# (museum visitors, benches, flagpoles, fountains, sister cities, ...).
-# The lasso should set their coefficients to zero - a built-in check that
-# variable selection works.
+# Also included on purpose: variables that should be irrelevant (museum
+# visitors, benches, flagpoles, fountains, sister cities, ...). The lasso
+# should zero these out - a built-in check that variable selection works.
 #
-# Deliberately EXCLUDED from the baseline (bad controls):
+# Excluded from the baseline on purpose (bad controls):
 #   - pm25:                air pollution is itself an outcome of emissions
 #   - fleet_*_share:       fleet composition is the main MECHANISM through
 #                          which a LEZ works (mediator, not confounder)
@@ -78,11 +77,10 @@ sq_vars <- c("log_population", "log_gdp_pc", "fuel_price",
              "public_transit_score")
 
 # ---- (5) Heterogeneity variables (question 2) -------------------------------
-# City characteristics along which the policy effects may differ.
-# They are CENTERED before interacting with the treatments, so that the
-# main treatment coefficient is the effect for an "average" city
-# (this makes the baseline coefficient directly interpretable - unlike in
-# the wage-gap example, where the main coefficient was a reference-group gap).
+# City characteristics along which the policy effects may differ. Centered
+# before interacting with the treatments, so the main treatment coefficient
+# stays the effect for an "average" city (unlike in the wage-gap example,
+# where the main coefficient was a reference-group gap).
 het_vars <- c("log_population", "log_gdp_pc", "log_pop_density",
               "public_transit_score", "political_green", "fuel_price",
               "tourism_intensity", "industry_logistics", "coastal")
@@ -104,7 +102,8 @@ p_adopt <- ggplot(adoption, aes(year, n_cities, colour = policy)) +
   labs(x = "Year", y = "Number of cities with active policy",
        title = "Staggered policy adoption, 2008-2024", colour = NULL) +
   theme_minimal(base_size = 12) + theme(legend.position = "bottom")
-ggsave("output/figures/fig_adoption.png", p_adopt, width = 8, height = 5)
+ggsave(file.path(out_dir, "figures/fig_adoption.png"), p_adopt,
+       width = 10, height = 4, dpi = 300)
 
 # 6b. Raw emission trends by (eventual) treatment group
 data <- data %>%
@@ -126,7 +125,8 @@ p_trend <- ggplot(trends, aes(year, mean_log_co2, colour = group)) +
        title = "Raw emission trends by eventual policy status",
        colour = NULL) +
   theme_minimal(base_size = 12) + theme(legend.position = "bottom")
-ggsave("output/figures/fig_raw_trends.png", p_trend, width = 8, height = 5)
+ggsave(file.path(out_dir, "figures/fig_raw_trends.png"), p_trend,
+       width = 10, height = 4, dpi = 300)
 
 # 6c. Summary statistics of the key variables
 sum_vars <- c("transport_co2", "cp_active", "lez_active",
@@ -160,7 +160,7 @@ saveRDS(list(data = data,
              ctrl_mediators = ctrl_mediators,
              sq_vars        = sq_vars,
              het_vars       = het_vars),
-        "output/prepared_data.rds")
+        file.path(out_dir, "prepared_data.rds"))
 
 cat("\nData preparation done:", nrow(data), "city-years,",
     length(unique(data$city_id)), "cities.\n")

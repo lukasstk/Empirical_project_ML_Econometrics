@@ -1,0 +1,126 @@
+================================================================================
+DISCUSSION: SHORTCOMINGS AND THREATS TO IDENTIFICATION
+================================================================================
+
+1. SELECTION BIAS / FAILURE OF CONDITIONAL IGNORABILITY (main shortcoming)
+--------------------------------------------------------------------------------
+The DML-PLR estimates rest on conditional ignorability: given the controls
+W, policy status must be as good as randomly assigned. The placebo test
+(announced-but-not-yet-active city-years) rejects this. Both placebo
+coefficients are large, positive and significant (cp_pre = +0.33,
+lez_pre = +0.39): before any charge is collected or any vehicle is banned,
+future adopters already emit 33-39 log points more than W predicts.
+
+Cities do not adopt congestion pricing or a low-emission zone at random --
+they adopt them in response to the very outcome under study. High-emission,
+congested cities face public pressure to act; low-emission cities have
+nothing to regulate. This "selection on the outcome" is not captured by the
+included covariates, so part of the pre-existing emission gap is loaded
+onto the treatment coefficients.
+
+Direction of the bias is identifiable from the placebo signs: UPWARD for
+both policies. Consequences:
+- The positive LEZ "effect" (+0.29) is approximately the size of the LEZ
+  pre-gap (+0.39) and is therefore plausibly pure selection. A causal
+  reading of "LEZs raise CO2 by a third" would be wrong.
+- The CP estimate (-0.18) is an upper bound (in the algebraic sense); the
+  true effect is likely more negative, roughly -0.5 log points if the
+  pre-gap carries through unchanged.
+- The strongly negative interaction and the joint effect are less clearly
+  affected: for the bias to produce a spurious negative synergy, cities
+  adopting BOTH policies would have to be negatively selected, which the
+  placebo design cannot test separately.
+
+2. WHY THE CONTROL SET CANNOT FIX THIS
+--------------------------------------------------------------------------------
+The lasso (and any other nuisance learner) selects variables that PREDICT
+well, not variables that close backdoor paths. If the confounder is a
+time-invariant or slowly-trending city attribute (e.g., a persistent
+car-dependence or congestion level that is only imperfectly proxied by
+density, transit score, and the other observables), no amount of flexible
+learning on the SAME covariates recovers it. The estimator checks in 04
+(learners, folds, control sets) all vary the ESTIMATOR; none of them can
+repair a violated identifying assumption -- and indeed they all reproduce
+the same biased pattern.
+
+The design also uses no within-city variation: the partially linear model
+pools cross-sectional and temporal variation, with year and country dummies
+but no city fixed effects. Any city-specific level difference correlated
+with adoption goes straight into the treatment coefficients. Natural
+remedies -- city fixed effects (within transformation or Mundlak device) or
+conditioning on pre-treatment outcome levels/lags -- interact awkwardly with
+lasso-based selection (many incidental parameters, mechanical correlation
+between lagged outcomes and treatment timing) and were left outside the
+scope of this project; they are the obvious next step.
+
+3. ANTICIPATION VS. SELECTION CANNOT BE FULLY SEPARATED
+--------------------------------------------------------------------------------
+The placebo period (announcement to implementation, ~1.5 years) could in
+principle also contain anticipation behavior (e.g., replacing a diesel car
+before the LEZ starts). Anticipation would push the placebo DOWNWARD, so
+the observed POSITIVE coefficients cannot be explained by it; selection
+dominates. But because every city that discussed a policy eventually
+implemented one, the data contain no "announced but never implemented"
+cities that would allow separating the two mechanisms cleanly.
+
+4. TREATMENT-EFFECT HOMOGENEITY AND STAGGERED ADOPTION
+--------------------------------------------------------------------------------
+The PLR imposes a single constant coefficient per treatment (on the log
+scale). Adoption is staggered over time, and the modern
+difference-in-differences literature shows that pooled two-way comparisons
+can weight cohort effects in unintended ways when effects vary over time
+or across cohorts (e.g., effects that grow as enforcement tightens).
+The heterogeneity run (03) relaxes homogeneity across CITY CHARACTERISTICS
+but not across TIME SINCE ADOPTION. An event-study parametrization
+(leads and lags around the implementation year) would show the dynamic
+path and provide a sharper pre-trend test than the single placebo dummy.
+
+5. MEDIATORS ARE EXCLUDED -- TOTAL EFFECTS ONLY
+--------------------------------------------------------------------------------
+The baseline deliberately excludes mediators (fleet composition, pm25), so
+the estimates are TOTAL policy effects. This is the right choice for the
+research question, but it means the analysis cannot decompose channels
+(fleet renewal vs. reduced driving). The sensitivity row with mediators
+included shows the expected attenuation and should be read as a
+specification check, not as an alternative estimate.
+
+6. STATISTICAL CAVEATS
+--------------------------------------------------------------------------------
+- The synergy estimate rests on only 28 cities that ever run both policies
+  (281 city-years). The CI is wide accordingly; small-sample cluster
+  behavior in this cell deserves caution.
+- CP alone is only borderline significant (p = 0.057); the data cannot
+  distinguish a modest CP effect from zero once clustering is respected.
+- Log outcome: effects are constant in PERCENT by construction. If policies
+  cut absolute tonnage similarly across city sizes, the log specification
+  would itself induce apparent heterogeneity by size.
+- Multiple testing in the heterogeneity table (18 interactions): with ~18
+  tests, one significant coefficient at the 5% level is expected by chance;
+  the CP interaction pattern is credible mainly because it is jointly
+  coherent (density, GDP, transit, fuel price all point the same way), not
+  because any single p-value is small.
+
+7. EXTERNAL VALIDITY
+--------------------------------------------------------------------------------
+The data are simulated European-style city panels. Magnitudes (a 54% joint
+reduction) should not be transferred to real policy settings; the value of
+the exercise is methodological -- in particular the demonstration that a
+well-specified DML pipeline with strong estimator robustness can still
+produce badly biased causal estimates when treatment assignment is
+endogenous, and that a placebo/pre-trend design is what detects it.
+
+8. WHAT WOULD STRENGTHEN THE DESIGN (next steps)
+--------------------------------------------------------------------------------
+- Add city fixed effects or a Mundlak device (city means of the controls)
+  to absorb time-invariant selection, and/or condition on pre-treatment
+  outcome levels.
+- Event-study leads and lags around implementation: flat pre-coefficients
+  would be direct evidence on pre-trends; the dynamic post path would test
+  the constant-effect assumption.
+- Exploit the announcement-to-implementation window explicitly (e.g.,
+  estimate effects relative to the announcement period rather than to all
+  untreated years), which nets out the level gap the placebo detects.
+- An instrument for adoption timing (e.g., political shocks unrelated to
+  emissions) would identify the effect without conditional ignorability;
+  no such instrument is available in this dataset.
+================================================================================

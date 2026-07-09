@@ -2,27 +2,39 @@
 # 03_heterogeneity_dml.R
 # Question 2: Which type of cities benefit the most/least from the policies?
 #
-# Interaction approach (as in the wage-gap heterogeneity example):
-#     add treatment x characteristic interactions as additional target
-#     parameters. Characteristics are CENTERED, so the main treatment
-#     coefficients remain the effect for an average city, and each
-#     interaction coefficient tells how the effect shifts when the
-#     characteristic is one unit above average.
+# Interaction approach, as in the lecture's wage-gap heterogeneity example:
+# add treatment x characteristic interactions as additional target
+# parameters. Characteristics are centered, so the main treatment
+# coefficients stay the effect for an average city, and each interaction
+# coefficient says how the effect shifts per unit above average.
 #
-#       log(CO2) = theta_cp*CP + theta_lez*LEZ + theta_int*CP*LEZ
-#                  + CP*(Z - mean(Z))'gamma_cp + LEZ*(Z - mean(Z))'gamma_lez
-#                  + g(W) + e
+#   log(CO2) = theta_cp*CP + theta_lez*LEZ + theta_int*CP*LEZ
+#              + CP*(Z - mean(Z))'gamma_cp + LEZ*(Z - mean(Z))'gamma_lez
+#              + g(W) + e
 #
-#     Estimated with cross-fitted DML (DoubleML package, see dml_plr in
-#     00_setup.R): CV-lasso nuisances, city-level folds, cluster-robust
-#     SEs. Each of the 3 + 2x9 treatment columns is estimated in turn with
-#     the remaining treatment columns moved into the controls, so n_rep = 1
-#     here to keep the runtime manageable (split noise is quantified for
-#     the main effects in 02 via n_rep = 5).
+# Estimated with cross-fitted DML (DoubleML package, dml_plr in 00_setup.R),
+# same procedure as 02 ("One-By-One Double LASSO"): each of the 3 + 2x9
+# treatment columns is estimated in turn, with the remaining treatment
+# columns folded into that run's nuisance/control set alongside W.
+# Plugin-lasso nuisances, city-level folds, cluster-robust SEs. n_rep = 5,
+# same as 02; 21 separate treatment columns is why this run is slower.
+#
+# A "type" of city is only defined through its observable characteristics
+# (size, wealth, density, transit quality, ...), so "which type benefits
+# most" is the same question as "how does the effect vary with each
+# characteristic" - exactly what these interactions measure. Same
+# construction as the lecture's `female` x education/experience
+# interactions, just with CP/LEZ as treatments and city traits as
+# characteristics.
+#
+# Reading the table: because characteristics are centered, the first three
+# rows (cp_active, lez_active, cp_x_lez) are the effects for an average
+# city, not the same numbers as in 02 - report the average effects from
+# 02, not from here.
 # =============================================================================
 
 source("00_setup.R")
-prep <- readRDS("output/prepared_data.rds")
+prep <- readRDS(file.path(out_dir, "prepared_data.rds"))
 data    <- prep$data
 
 Y <- data$log_transport_co2
@@ -44,7 +56,7 @@ D_het <- cbind(cp_active  = data$cp_active,
                D_cp_int, D_lez_int)
 
 het <- dml_plr(Y, D_het, W, cluster = data$city_id,
-               learner = "lasso", n_folds = 5, n_rep = 1, seed = 42)
+               learner = "rlasso", n_folds = 5, n_rep = 5, seed = 42)
 save_table(het$results, "tab_heterogeneity_dml")
 
 # Coefficient plots, separately for CP and LEZ interactions
@@ -53,13 +65,9 @@ res_cp  <- het$results[grepl("^cp_x_",  het$results$term) &
 res_lez <- het$results[grepl("^lez_x_", het$results$term), ]
 
 plot_effects(res_cp,
-             "Heterogeneity of the congestion-pricing effect (DML, 95% CI)",
+             "Heterogeneity of the congestion pricing (CP) effect",
              "fig_het_cp.png")
 plot_effects(res_lez,
-             "Heterogeneity of the low-emission-zone effect (DML, 95% CI)",
+             "Heterogeneity of the low-emission zone (LEZ) effect",
              "fig_het_lez.png")
-
-cat("\nHeterogeneity analysis done.\n",
-    "Read the interaction coefficients as: effect shift per one-unit\n",
-    "increase of the (centered) characteristic above the average city.\n")
 
