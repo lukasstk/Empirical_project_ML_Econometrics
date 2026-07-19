@@ -13,6 +13,9 @@ Lecture/
 # R temp files
 .RDataTmp
 
+# child logs/sentinels of Code/05b_run_all_parallel.R
+.run_logs/
+
 # dev utility for plot styling, not part of the submitted pipeline
 regen_plots.R
 

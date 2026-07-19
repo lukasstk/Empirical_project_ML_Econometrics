@@ -4,10 +4,10 @@
 # sequentially,
 # then launches 02/03/04 (which are independent, each reading only
 # prepared_data.rds) as background Rscript processes on the same out_dir.
-# Console output of the children goes to a temporary logs folder (path is
-# printed; kept out of out_dir so the output folder stays clean), completion
-# is signalled via sentinel files. Full speed needs ~15 free cores (3
-# children x 5 future workers each).
+# Console output of the children goes to .run_logs/ in the project root
+# (gitignored; kept out of out_dir so the output folder stays clean),
+# completion is signalled via sentinel files. Full speed needs ~15 free
+# cores (3 children x 5 future workers each).
 # =============================================================================
 
 t0 <- Sys.time()
@@ -29,7 +29,11 @@ scripts <- c("Code/02_main_and_joint_effects.R",
              "Code/03a_heterogeneity_primary.R",
              "Code/04_sensitivity_analysis.R")
 # Logs live outside out_dir so the output folder holds only results.
-log_dir <- file.path(tempdir(), "run_all_logs")
+# Deliberately a RELATIVE path: absolute Windows temp paths contain
+# backslashes, which turn into (invalid) escape sequences when embedded in
+# the child R command below - the children then can never write their
+# sentinels and the wait loop hangs at 0/3 forever.
+log_dir <- ".run_logs"
 dir.create(log_dir, showWarnings = FALSE)
 cat("Child logs go to:", log_dir, "\n")
 
