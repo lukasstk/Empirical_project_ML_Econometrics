@@ -41,6 +41,11 @@ cat("Child logs go to:", log_dir, "\n")
 sentinel <- function(s) file.path(log_dir, paste0(".done_", basename(s)))
 for (s in scripts) unlink(sentinel(s))   # stale sentinels from earlier runs
 
+# Any path embedded in the child R command must use forward slashes:
+# backslashes (e.g. from a Windows out_dir like "C:\...") become invalid
+# escape sequences inside the child's string literals.
+fwd <- function(p) gsub("\\\\", "/", p)
+
 for (s in scripts) {
   # Each child gets out_dir injected before 00_setup.R runs, sources its
   # script, and writes OK/FAIL to its sentinel.
@@ -48,7 +53,7 @@ for (s in scripts) {
     "out_dir <- '%s'; ok <- tryCatch({ source('%s', echo = FALSE); TRUE },
        error = function(e) { message(conditionMessage(e)); FALSE });
      writeLines(if (ok) 'OK' else 'FAIL', '%s')",
-    out_dir, s, sentinel(s))
+    fwd(out_dir), fwd(s), fwd(sentinel(s)))
   system2("Rscript",
           args   = c("-e", shQuote(expr)),
           stdout = file.path(log_dir, paste0(basename(s), ".log")),
