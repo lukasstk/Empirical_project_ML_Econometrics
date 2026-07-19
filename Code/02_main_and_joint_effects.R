@@ -1,43 +1,24 @@
 # =============================================================================
-# 02_main_effects_dml.R
+# 02_main_and_joint_effects.R
 # Questions 1 & 3: average policy effects and super-/sub-additivity.
-#
-# Two DML runs on the same partially linear model, differing only in how the
-# treatment regimes are parametrized:
-#
-#   Run 1 (regime parametrization):  D = (only CP, only LEZ, both)
-#     mutually exclusive regime dummies against "no policy".
-#     - only_cp / only_lez: effect of each policy ALONE              -> question 1
-#     - both: total effect of running both policies vs. neither, as a single
-#       coefficient with its own directly computed CI - no linear combination
-#       of estimates (and hence no coefficient covariances) needed
-#                                                                -> questions 1 & 3
-#
-#   Run 2 (interaction parametrization):  D = (CP, LEZ, CP*LEZ)
-#     - theta_int: deviation of the joint effect from the sum of the
-#       individual effects (< 0: super-additive synergy)        -> question 3
-#
-# Estimated with cross-fitted DML (DoubleML package, dml_plr in 00_setup.R):
-# each treatment coefficient is estimated in turn, with the other treatment
-# columns folded into that run's nuisance/control set alongside W - this is
-# DoubleML's default (use_other_treat_as_covariate = TRUE) and exactly the
-# lecture's "One-By-One Double LASSO" procedure for a vector of target
-# coefficients (see dml_plr in 00_setup.R for the precise correspondence).
-# Plugin-lasso nuisances (hdm::rlasso, lambda from the Belloni/Chernozhukov/
-# Hansen formula - one fit per nuisance instead of an inner 10-fold CV;
-# CV-tuned lasso, ridge, and random forest are checked as alternative
-# learners in 04), city-level folds, cluster-robust SEs. Repeated
-# cross-fitting (n_rep below: 1 for development, 5 for the final run) puts
-# split noise into the CIs.
+# Two parametrizations of the same partially linear model with city fixed
+# effects (same Y, same W, coefficients are linear recombinations of each
+# other):
+#   (a) interaction parametrization D = (CP, LEZ, CP*LEZ):
+#       theta_cp / theta_lez answer Q1 for each policy alone and the
+#       interaction theta_int answers Q3 (super-/sub-additivity) directly.
+#   (b) regime parametrization D = (only CP, only LEZ, both), base category
+#       "neither policy": theta_both answers Q1's "both policies vs. no
+#       policy" with a proper SE/CI, which (a) can only deliver as a
+#       CI-less sum of coefficients (cross-coefficient covariances are not
+#       reported by DoubleML).
 # =============================================================================
 
-source("00_setup.R")
+source("Code/00_setup.R")
 prep <- readRDS(file.path(out_dir, "prepared_data.rds"))
 data    <- prep$data
 
-# Repeated cross-fitting splits: 5 puts split noise into the CIs (see
-# dml_plr, 00_setup.R); cheap with the rlasso learner. Set to 1 only if a
-# quick development run is needed.
+# Repeated cross-fitting splits (5 = final run, 1 = quick development run)
 n_rep <- 5
 
 # ---- (1) Build outcome, treatments, controls --------------------------------
@@ -46,26 +27,10 @@ D <- cbind(cp_active  = data$cp_active,
            lez_active = data$lez_active,
            cp_x_lez   = data$cp_x_lez)
 
-# High-dimensional control matrix:
-# main effects + all pairwise interactions + squared terms
-# + year dummies + country dummies (see build_W in 00_setup.R)
 W <- build_W(data, prep$ctrl_baseline, prep$sq_vars)
 cat("Control matrix W:", nrow(W), "x", ncol(W), "\n")
 
-# ---- (2) Run 1: regime parametrization (single- and joint-policy effects) ---
-D_regime <- cbind(only_cp  = data$cp_active  * (1 - data$lez_active),
-                  only_lez = data$lez_active * (1 - data$cp_active),
-                  both     = data$cp_active  * data$lez_active)
-regime <- dml_plr(Y, D_regime, W, cluster = data$city_id,
-                  learner = "rlasso", n_folds = 5, n_rep = n_rep, seed = 42)
-
-res_regime <- regime$results
-res_regime$pct_effect    <- pct(res_regime$estimate)
-res_regime$pct_conf.low  <- pct(res_regime$conf.low)
-res_regime$pct_conf.high <- pct(res_regime$conf.high)
-save_table(res_regime, "tab_policy_regimes")
-
-# ---- (3) Run 2: interaction parametrization (super-/sub-additivity) ---------
+# ---- (2) DML run (a): interaction parametrization ---------------------------
 main <- dml_plr(Y, D, W, cluster = data$city_id,
                 learner = "rlasso", n_folds = 5, n_rep = n_rep, seed = 42)
 
@@ -73,22 +38,36 @@ res_main <- main$results
 res_main$pct_effect    <- pct(res_main$estimate)
 res_main$pct_conf.low  <- pct(res_main$conf.low)
 res_main$pct_conf.high <- pct(res_main$conf.high)
-save_table(res_main, "tab_main_effects_dml")
+save_table(res_main, "tab_main_effects")
 
-# Consistency check across parametrizations (should hold approximately):
-#   only_cp  ~ theta_cp,  only_lez ~ theta_lez,
-#   both     ~ theta_cp + theta_lez + theta_int
-# See tab_policy_regimes.csv ("both" row) vs. tab_main_effects_dml.csv
-# (cp_active + lez_active + cp_x_lez) for the report.
+# ---- (3) DML run (b): regime parametrization (question 1, joint effect) -----
+# Mutually exclusive policy regimes; "both" is the total effect of running
+# both policies vs. neither, with its own SE/CI.
+D_reg <- cbind(only_cp  = data$cp_active  * (1 - data$lez_active),
+               only_lez = data$lez_active * (1 - data$cp_active),
+               both     = data$cp_active  * data$lez_active)
 
-# ---- (4) Coefficient plots ---------------------------------------------------
-# x_breaks: fixed 0.5-step ticks, not the default ~10-target pretty_breaks -
-# these two plots' narrower estimate range made that default too dense/uneven.
-plot_effects(res_regime,
-             "Policy regimes vs. no policy: congestion pricing (CP) and low-emission zone (LEZ)",
-             "fig_policy_regimes.png",
-             x_breaks = scales::breaks_width(0.5))
-plot_effects(res_main,
-             "Average policy effects: congestion pricing (CP) and low-emission zone (LEZ)",
-             "fig_main_effects.png",
-             x_breaks = scales::breaks_width(0.5))
+regimes <- dml_plr(Y, D_reg, W, cluster = data$city_id,
+                   learner = "rlasso", n_folds = 5, n_rep = n_rep, seed = 42)
+
+res_reg <- regimes$results
+res_reg$pct_effect    <- pct(res_reg$estimate)
+res_reg$pct_conf.low  <- pct(res_reg$conf.low)
+res_reg$pct_conf.high <- pct(res_reg$conf.high)
+save_table(res_reg, "tab_joint_effects_regimes")
+
+# Consistency across parametrizations (equal up to cross-fitting noise):
+#   theta_cp + theta_lez + theta_int  (a)  =  theta_both  (b)
+#   theta_both - theta_only_cp - theta_only_lez  (b)  =  theta_int  (a)
+both_hat <- sum(res_main$estimate)
+cat(sprintf("\nBoth vs. neither -- (a) reconstructed sum: %.4f | (b) direct with CI: %.4f [%.4f, %.4f]\n",
+            both_hat,
+            res_reg$estimate[res_reg$term == "both"],
+            res_reg$conf.low[res_reg$term == "both"],
+            res_reg$conf.high[res_reg$term == "both"]))
+
+# ---- (4) Coefficient plots (one per parametrization) ------------------------
+plot_effects(res_main, "fig_main_effects.png",
+             x_breaks = scales::breaks_width(0.25))
+plot_effects(res_reg,  "fig_joint_effects_regimes.png",
+             x_breaks = scales::breaks_width(0.25))
