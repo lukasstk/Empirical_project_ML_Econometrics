@@ -1,4 +1,4 @@
-# Urban Emission Policies and Transport CO2 — a Double Machine Learning Analysis
+# Double Machine Learning for Urban Climate Policy Evaluation: Congestion Pricing and Low-Emission Zones
 
 Empirical project for the course *Machine Learning in Econometrics*. The
 analysis estimates the causal effect of two urban transport policies —
