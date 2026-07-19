@@ -4,10 +4,10 @@
 # sequentially,
 # then launches 02/03/04 (which are independent, each reading only
 # prepared_data.rds) as background Rscript processes on the same out_dir.
-# Console output of the children goes to a temporary logs folder (path is
-# printed; kept out of out_dir so the output folder stays clean), completion
-# is signalled via sentinel files. Full speed needs ~15 free cores (3
-# children x 5 future workers each).
+# Console output of the children goes to .run_logs/ in the project root
+# (gitignored; kept out of out_dir so the output folder stays clean),
+# completion is signalled via sentinel files. Full speed needs ~15 free
+# cores (3 children x 5 future workers each).
 # =============================================================================
 
 t0 <- Sys.time()
@@ -29,13 +29,22 @@ scripts <- c("Code/02_main_and_joint_effects.R",
              "Code/03a_heterogeneity_primary.R",
              "Code/04_sensitivity_analysis.R")
 # Logs live outside out_dir so the output folder holds only results.
-log_dir <- file.path(tempdir(), "run_all_logs")
+# Deliberately a RELATIVE path: absolute Windows temp paths contain
+# backslashes, which turn into (invalid) escape sequences when embedded in
+# the child R command below - the children then can never write their
+# sentinels and the wait loop hangs at 0/3 forever.
+log_dir <- ".run_logs"
 dir.create(log_dir, showWarnings = FALSE)
 cat("Child logs go to:", log_dir, "\n")
 
 # basename(): scripts live in Code/, but sentinel/log files are flat names
 sentinel <- function(s) file.path(log_dir, paste0(".done_", basename(s)))
 for (s in scripts) unlink(sentinel(s))   # stale sentinels from earlier runs
+
+# Any path embedded in the child R command must use forward slashes:
+# backslashes (e.g. from a Windows out_dir like "C:\...") become invalid
+# escape sequences inside the child's string literals.
+fwd <- function(p) gsub("\\\\", "/", p)
 
 for (s in scripts) {
   # Each child gets out_dir injected before 00_setup.R runs, sources its
@@ -44,7 +53,7 @@ for (s in scripts) {
     "out_dir <- '%s'; ok <- tryCatch({ source('%s', echo = FALSE); TRUE },
        error = function(e) { message(conditionMessage(e)); FALSE });
      writeLines(if (ok) 'OK' else 'FAIL', '%s')",
-    out_dir, s, sentinel(s))
+    fwd(out_dir), fwd(s), fwd(sentinel(s)))
   system2("Rscript",
           args   = c("-e", shQuote(expr)),
           stdout = file.path(log_dir, paste0(basename(s), ".log")),
