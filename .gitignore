@@ -9,3 +9,16 @@
 
 # course materials: too large for GitHub (143 MB PDF) and not my own work
 Lecture/
+
+# R temp files
+.RDataTmp
+
+# dev utility for plot styling, not part of the submitted pipeline
+regen_plots.R
+
+# lecture example script (CPS wage gap), not part of this analysis
+Code.R
+
+# scratch output runs (final results live in output/ and
+# output_heterogeneity_all_controls/, which stay committed)
+output_my_new_run/
