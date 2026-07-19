@@ -1,4 +1,4 @@
-﻿# Codebase: Urban emission policies (CP & LEZ) - DML analysis
+﻿# Codebase: Double Machine Learning for Urban Climate Policy Evaluation (CP & LEZ)
 
 Run everything with `source("Code/05a_run_all_sequential.R")` from the
 project root, or with `source("Code/05b_run_all_parallel.R")` on a machine
