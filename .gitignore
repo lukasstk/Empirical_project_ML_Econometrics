@@ -22,6 +22,5 @@ regen_plots.R
 # lecture example script (CPS wage gap), not part of this analysis
 Code.R
 
-# scratch output runs (final results live in output/ and
-# output_heterogeneity_all_controls/, which stay committed)
+# scratch output runs (final results live in output/, which stays committed)
 output_my_new_run/

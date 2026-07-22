@@ -18,8 +18,9 @@ run <- function(script) {
 run("Code/00_setup.R")
 run("Code/01_data_preparation.R")
 run("Code/02_main_and_joint_effects.R")
-run("Code/03a_heterogeneity_primary.R")  # Code/03b_heterogeneity_all_controls.R
-                                         # (robustness appendix) is run manually
+run("Code/03a_heterogeneity_primary.R")
+# run("Code/03b_heterogeneity_all_controls.R")  # optional robustness appendix,
+                                                 # slow - uncomment to include
 run("Code/04_sensitivity_analysis.R")
 
 cat("\nAll scripts finished. See", file.path(out_dir, "tables"), "and",
