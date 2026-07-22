@@ -21,8 +21,11 @@ future::plan("multisession", workers = 5)
 
 # Output folder; set out_dir before sourcing to pick a different name.
 if (!exists("out_dir")) out_dir <- "output"
-dir.create(file.path(out_dir, "figures"), recursive = TRUE, showWarnings = FALSE)
-dir.create(file.path(out_dir, "tables"),  recursive = TRUE, showWarnings = FALSE)
+ensure_out_dirs <- function(dir) {
+  dir.create(file.path(dir, "figures"), recursive = TRUE, showWarnings = FALSE)
+  dir.create(file.path(dir, "tables"),  recursive = TRUE, showWarnings = FALSE)
+}
+ensure_out_dirs(out_dir)
 cat("Results are written to:", out_dir, "\n")
 
 # Save a results table as csv and print it to the console
@@ -36,9 +39,13 @@ save_table <- function(tab, name) {
 # Log-point estimate -> exact percentage effect: 100 * (exp(beta) - 1)
 pct <- function(x) 100 * (exp(x) - 1)
 
-# ---- demean_by_city: within-transformation (city fixed effects) -------------
+# ---- demean_by_city_fwl: within-transformation (city fixed effects) -------------
 # Subtract each city's own mean over its years from every column.
-demean_by_city <- function(M, id) {
+# rowsum(M, id) and table(id) both sort groups alphabetically by default,
+# so they'd already line up - but n_i is re-indexed by rownames(sums)
+# explicitly, so correctness never depends on that coincidence.
+# sums / n_i then recycles row-wise (n_i[i] divides row i of sums).
+demean_by_city_fwl <- function(M, id) {
   M    <- as.matrix(M)
   id   <- as.character(id)
   sums <- rowsum(M, id)                        # one row per city (sorted)
@@ -60,14 +67,18 @@ build_W <- function(df, ctrl_vars, sq_vars = NULL, interactions = TRUE) {
   f <- as.formula(paste("~ -1 + factor(year) + country_id +", rhs))
   W <- model.matrix(f, data = df)
   W <- W[, apply(W, 2, var) > 0, drop = FALSE]        # drop constant columns
-  # syntactic, unique column names (":" -> "."), consistent with D in dml_plr
+  # syntactic, unique column names (":" -> ".") so mlr3 accepts them
   colnames(W) <- make.names(colnames(W), unique = TRUE)
-  W <- demean_by_city(W, df$city_id)                  # city fixed effects
+  W <- demean_by_city_fwl(W, df$city_id)                  # city fixed effects
   W[, apply(W, 2, var) > 1e-12, drop = FALSE]
 }
 
 # ---- LearnerRegrRlasso: mlr3 learner wrapping hdm::rlasso --------------------
 # Lasso with the theory-based plugin penalty of Belloni/Chernozhukov/Hansen.
+# DoubleMLPLR requires ml_l/ml_m to be mlr3::Learner objects - hdm::rlasso is
+# a standalone function, not one. This class just adapts it: .train()/.predict()
+# delegate to hdm::rlasso()/predict.rlasso() under the hood, so DoubleML sees
+# an ordinary learner while the actual estimation is unchanged.
 LearnerRegrRlasso <- R6::R6Class("LearnerRegrRlasso",
   inherit = mlr3::LearnerRegr,
   public = list(
@@ -129,8 +140,8 @@ dml_plr <- function(Y, D, W, cluster, learner = "rlasso",
             length(cluster) == length(Y))
 
   # City fixed effects: within-demean Y and D per city
-  Y <- as.vector(demean_by_city(matrix(Y, ncol = 1), cluster))
-  D <- demean_by_city(D, cluster)
+  Y <- as.vector(demean_by_city_fwl(matrix(Y, ncol = 1), cluster))
+  D <- demean_by_city_fwl(D, cluster)
 
   df <- data.table::as.data.table(cbind(
     data.frame(Y_out = Y, city_cl = as.character(cluster)), D, W))

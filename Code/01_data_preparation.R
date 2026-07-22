@@ -66,6 +66,16 @@ sq_vars <- c("log_population", "log_gdp_pc", "fuel_price",
              "public_transit_score")
 
 # ---- (5) Save prepared objects for the analysis scripts ---------------------
+# Don't clobber a completed previous run: if out_dir already holds a
+# prepared_data.rds, switch to the next free "<out_dir>_N" instead.
+if (file.exists(file.path(out_dir, "prepared_data.rds"))) {
+  old_dir <- out_dir
+  n <- 2
+  while (file.exists(file.path(paste0(old_dir, "_", n), "prepared_data.rds"))) n <- n + 1
+  out_dir <- paste0(old_dir, "_", n)
+  ensure_out_dirs(out_dir)
+  cat(old_dir, "already has results; writing this run to", out_dir, "instead\n")
+}
 saveRDS(list(data = data,
              ctrl_baseline  = ctrl_baseline,
              ctrl_mediators = ctrl_mediators,

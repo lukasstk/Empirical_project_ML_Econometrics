@@ -51,6 +51,7 @@ Empirical_project_ML_Econometrics/
 │   │   ├── tab_main_effects.csv            # from 02
 │   │   ├── tab_joint_effects_regimes.csv   # from 02
 │   │   ├── tab_heterogeneity_primary.csv   # from 03a
+│   │   ├── tab_heterogeneity_full.csv      # from 03b (optional, not in 05)
 │   │   ├── tab_sensitivity.csv             # from 04
 │   │   └── tab_sensitivity_placebo.csv     # from 04
 │   └── figures/
@@ -58,12 +59,10 @@ Empirical_project_ML_Econometrics/
 │       ├── fig_joint_effects_regimes.png
 │       ├── fig_heterogeneity_primary_cp.png
 │       ├── fig_heterogeneity_primary_lez.png
+│       ├── fig_heterogeneity_full_cp.png       # from 03b (optional, not in 05)
+│       ├── fig_heterogeneity_full_lez.png      # from 03b (optional, not in 05)
 │       ├── fig_sensitivity_learner.png
 │       └── fig_sensitivity_controls.png
-│
-├── output_heterogeneity_all_controls/    # Precomputed results of 03b (slowest run)
-│   ├── tables/tab_heterogeneity_full.csv
-│   └── figures/fig_heterogeneity_full_{cp,lez}.png
 │
 ├── instructions.pdf                      # Course assignment / task description
 ├── README_codebase.md                    # Script-by-script and methodology documentation
@@ -114,9 +113,15 @@ cross-fitting). The full pipeline is compute-intensive — the runners print
 elapsed time as they go. To write to a different folder, set
 `out_dir <- "my_folder"` before sourcing.
 
+If `out_dir` already contains a `prepared_data.rds` from a previous run,
+`01_data_preparation.R` will not overwrite it — it automatically switches to
+`<out_dir>_2` (or `_3`, etc., the first free name) and prints the change.
+
 The robustness appendix `Code/03b_heterogeneity_all_controls.R` is **not**
-part of the pipeline (it is by far the slowest run). Its precomputed results
-ship in `output_heterogeneity_all_controls/`; to reproduce them:
+run by default in `05a`/`05b` (it is by far the slowest run) — its call is
+present but commented out in both runners. Its precomputed results ship in
+`output/`. To include it, either uncomment its line in `05a`/`05b`, or run it
+standalone on a folder that already has `prepared_data.rds`:
 
 ```r
 out_dir <- "output"                  # any folder containing prepared_data.rds

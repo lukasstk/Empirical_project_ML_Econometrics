@@ -23,10 +23,10 @@ if (n_cores < 15) cat("Fewer than 15 cores: children will time-slice",
                       "(still correct, just less than the full 3x speedup).\n")
 
 # ---- (2) Launch 02/03/04 as background processes ------------------------------
-# Code/03b_heterogeneity_all_controls.R (robustness appendix) is not in this
-# list; run it manually on the same out_dir when needed.
 scripts <- c("Code/02_main_and_joint_effects.R",
              "Code/03a_heterogeneity_primary.R",
+             # "Code/03b_heterogeneity_all_controls.R",  # optional robustness
+                                                          # appendix, slow
              "Code/04_sensitivity_analysis.R")
 # Logs live outside out_dir so the output folder holds only results.
 # Deliberately a RELATIVE path: absolute Windows temp paths contain
