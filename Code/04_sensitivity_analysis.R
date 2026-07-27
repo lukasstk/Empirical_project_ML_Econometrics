@@ -35,8 +35,6 @@ sens$rlasso    <- run_spec("rlasso (baseline)", Y, D, W_base,
                            learner = "rlasso")
 sens$ridge     <- run_spec("CV ridge (1se)",     Y, D, W_base,
                            learner = "ridge")
-# Same W as the other learners, so this row changes only the learner.
-# Slowest row of the table: ranger on the full 600+ column matrix.
 sens$rf        <- run_spec("random forest",      Y, D, W_base,
                            learner = "rf")
 
@@ -47,10 +45,7 @@ sens$ext   <- run_spec("with added mediators",
 
 # ---- (3) Placebo treatment: announced but not yet active ---------------------
 # Indicator for city-years between announcement and implementation; enters
-# jointly with the actual treatment indicators. The table does double duty:
-# cp_pre / lez_pre are the placebo test, and because DoubleML folds the
-# other d_cols into the covariates, the cp_active / lez_active rows are the
-# main effects adjusted for the announcement period (anticipation).
+# jointly with the actual treatment indicators. 
 plc <- function(announce, impl) {
   as.integer(announce > 0 & data$year >= announce &
                (impl == 0 | data$year < impl))
@@ -68,7 +63,6 @@ rownames(sens_tab) <- NULL
 save_table(sens_tab, "tab_sensitivity")
 
 # ---- Sensitivity figures (one per check group) ----------------------------
-# Pin spec order to the definition order above (reversed: baseline on top)
 sens_tab$spec <- factor(sens_tab$spec, levels = rev(unique(sens_tab$spec)))
 
 sens_tab$sig_colour <- classify_colour(sens_tab$estimate, sens_tab$conf.low, sens_tab$conf.high)
@@ -102,19 +96,16 @@ theme.adjusted.facet <- theme(
   axis.title.y = element_blank(),
   title = element_text(color = "black"),
   plot.background = element_rect(fill = "white", color = NA),
-  # facet strip replaced by an in-panel top-left label (see plot_sens)
   strip.text = element_blank(),
   strip.background = element_blank()
 )
 
 # One figure per check group: 3 term-facets stacked (CP, LEZ, CP:LEZ), term
 # name as a bold in-panel corner label instead of the default facet strip.
-# No plot titles: the report supplies figure captions.
+
 plot_sens <- function(tab, file) {
   tab$spec  <- droplevels(tab$spec)
   tab$stars <- sig_stars(tab$p.value)
-  # must stay a factor with the same levels as tab$facet_label, otherwise
-  # ggplot sorts the panels alphabetically
   facet_name_labels <- data.frame(
     facet_label = factor(levels(tab$facet_label),
                          levels = levels(tab$facet_label)))
@@ -123,23 +114,20 @@ plot_sens <- function(tab, file) {
     geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, colour = sig_colour),
                    height = 0.25, linewidth = 0.6) +
     geom_point(aes(colour = sig_colour), size = 1.5) +
-    # significance stars just above each significant point
     geom_text(aes(label = stars, colour = sig_colour), nudge_y = 0.3,
               size = 3.5, family = "Times New Roman", fontface = "bold") +
     scale_colour_identity() +
     scale_y_discrete(guide = guide_axis(check.overlap = FALSE)) +
-    # in-panel label: same x start in every panel so left edges line up
     geom_text(data = facet_name_labels, aes(x = 0.6, y = Inf, label = facet_label),
              inherit.aes = FALSE, hjust = 0, vjust = 1.4,
              fontface = "bold", family = "Times New Roman", size = 3) +
     facet_wrap(~ facet_label, ncol = 1) +
-    # same fixed scale for every facet/plot, so panels are comparable
     scale_x_continuous(limits = c(-1.5, 1), breaks = seq(-1.5, 1, by = 0.5)) +
     labs(x = "Effect on log transport CO2", y = NULL) +
     theme_minimal(base_size = 11) +
     theme.adjusted.facet
 
-  # fixed height so all three figures share the same size/aspect ratio
+
   ggsave(file.path(out_dir, "figures", file), p,
          width = 10, height = 8, dpi = 300)
   p
