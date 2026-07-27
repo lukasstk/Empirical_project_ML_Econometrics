@@ -23,7 +23,7 @@ het_vars_primary <- c("log_population", "log_gdp_pc", "log_pop_density",
 Zc <- scale(as.matrix(data[het_vars_primary]), center = TRUE, scale = FALSE)
 colnames(Zc) <- make.names(colnames(Zc), unique = TRUE)
 
-# ---- CATE interaction approach with cross-fitted DML ------------------------
+# ---- Linear CATE approximation (interaction) with cross-fitted DML ----------
 D_cp_int  <- data$cp_active  * Zc
 colnames(D_cp_int)  <- paste0("cp_x_",  colnames(Zc))
 D_lez_int <- data$lez_active * Zc
