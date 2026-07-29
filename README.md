@@ -8,7 +8,8 @@ for the partially linear model with city fixed effects (`DoubleML` package,
 `mlr3` learners).
 
 The full task description is in [`instructions.pdf`](instructions.pdf); the
-research questions addressed are:
+write-up of the analysis and results is in [`Report/Report.pdf`](Report/Report.pdf).
+The research questions addressed are:
 
 1. **Q1 — Average effects:** How do CP and LEZ each affect transport CO2, and
    what is the joint effect of running both?
@@ -63,6 +64,9 @@ Empirical_project_ML_Econometrics/
 │       ├── fig_heterogeneity_full_lez.png      # from 03b (optional, not in 05)
 │       ├── fig_sensitivity_learner.png
 │       └── fig_sensitivity_controls.png
+│
+├── Report/
+│   └── Report.pdf                        # Write-up of the analysis and results
 │
 ├── instructions.pdf                      # Course assignment / task description
 ├── README_codebase.md                    # Script-by-script and methodology documentation
