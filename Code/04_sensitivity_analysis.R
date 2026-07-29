@@ -19,8 +19,10 @@ D <- cbind(cp_active  = data$cp_active,
            cp_x_lez   = data$cp_x_lez)
 
 W_base <- build_W(data, prep$ctrl_baseline, prep$sq_vars)
+
 # Main-effects-only matrix (no interactions): minimal-controls spec
 W_main <- build_W(data, prep$ctrl_baseline, interactions = FALSE)
+
 # Baseline control set extended by the mediators
 W_ext  <- build_W(data, c(prep$ctrl_baseline, prep$ctrl_mediators), prep$sq_vars)
 
@@ -47,8 +49,13 @@ sens$ext   <- run_spec("with added mediators",
 # Indicator for city-years between announcement and implementation; enters
 # jointly with the actual treatment indicators. 
 plc <- function(announce, impl) {
-  as.integer(announce > 0 & data$year >= announce &
-               (impl == 0 | data$year < impl))
+  as.integer(
+    announce > 0 &               # policy was announced at all
+      data$year >= announce &    # on/after the announcement year
+      (impl == 0 |                # impl == 0: never actually implemented,
+                                   # so the announcement phase never ends
+         data$year < impl)        # otherwise: still before implementation
+  )
 }
 D_plac <- cbind(D,
                 cp_pre  = plc(data$cp_announce_year,  data$cp_impl_year),
