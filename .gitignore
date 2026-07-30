@@ -17,3 +17,6 @@
 # Lecture/ (course materials, not my own work), regen_plots.R (dev utility),
 # Code.R (lecture example script), output_my_new_run/ (scratch runs)
 _ignore/
+
+# manual submission zip, handed in outside git
+submission.zip
