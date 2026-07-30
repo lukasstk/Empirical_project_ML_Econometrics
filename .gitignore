@@ -7,20 +7,13 @@
 .omc/
 .omx/
 
-# course materials: too large for GitHub (143 MB PDF) and not my own work
-Lecture/
-
 # R temp files
 .RDataTmp
 
 # child logs/sentinels of Code/05b_run_all_parallel.R
 .run_logs/
 
-# dev utility for plot styling, not part of the submitted pipeline
-regen_plots.R
-
-# lecture example script (CPS wage gap), not part of this analysis
-Code.R
-
-# scratch output runs (final results live in output/, which stays committed)
-output_my_new_run/
+# everything here is excluded from the submission zip:
+# Lecture/ (course materials, not my own work), regen_plots.R (dev utility),
+# Code.R (lecture example script), output_my_new_run/ (scratch runs)
+_ignore/
